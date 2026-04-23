@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Formulário - Engeclinic</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #f2f6f9;
+      margin: 0;
+      padding: 10px;
+    }
+
+    .container {
+      max-width: 480px;
+      background: #ffffff;
+      padding: 20px;
+      margin: auto;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    h2 {
+      text-align: center;
+      color: #0b4f6c;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    select, input, textarea {
+      width: 100%;
+      padding: 12px;
+      margin-top: 5px;
+      border-radius: 8px;
+      border: 1px solid #ccd6dd;
+      font-size: 16px;
+      background: #f9fbfc;
+      box-sizing: border-box;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    select:focus, input:focus {
+      outline: none;
+      border-color: #1e88a8;
+    }
+
+    #contador {
+      font-size: 12px;
+      color: #666;
+      float: right;
+    }
+
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 14px;
+      background: #1e88a8;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #166d87;
+    }
+
+    .logo {
+      text-align: left;
+      margin-bottom: 10px;
+    }
+
+    .logo img {
+      max-width: 200px;
+    }
+
+    /* Estilo do Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      text-align: left;
+    }
+
+    .modal-content h3 {
+      color: #1e88a8;
+      margin-top: 0;
+      border-bottom: 2px solid #f2f6f9;
+      padding-bottom: 10px;
+    }
+
+    .modal-info {
+  margin: 15px 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #444;
+  white-space: pre-wrap;
+  text-align: left;    /* Garante alinhamento à esquerda */
+  text-indent: 0;      /* Remove qualquer recuo de parágrafo */
+
+    }
+
+    .modal-info b {
+      color: #0b4f6c;
+    }
+
+    .btn-fechar {
+      background: #1e88a8;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      width: 100%;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="meuModal" class="modal-overlay">
+  <div class="modal-content">
+    <h3 id="modal-titulo">Chamado Aberto!</h3>
+    <div id="modal-corpo" class="modal-info"></div>
+    <button class="btn-fechar" onclick="fecharModal()">Concluir</button>
+  </div>
+</div>
+
+<div class="container">
+  <div class="logo">
+    <img src="logo-engeclinic.svg" alt="Logo">
+  </div>
+
+  <h2>Ordem de Serviço</h2>
+
+  <form id="formulario">
+    <label>Hospital</label>
+    <select id="hospital" required>
+      <option value="">Selecione...</option>
+      <option value="180">Hospital Sírio Libanês</option>
+      <option value="169">Hospital Israelita Albert Einstein</option>
+      <option value="182">Hospital Regional de São José dos Campos</option>
+      <option value="181">Hospital Regional de Sorocaba</option>
+      <option value="183">Hospital da Mulher</option>
+      <option value="169">Hospital da PUC - Campinas</option>
+    </select>
+
+    <label>Equipamento</label>
+    <select id="equipamento" required>
+      <option value="">Selecione o hospital primeiro</option>
+    </select>
+
+    <label>Descrição</label>
+    <textarea id="descricao" placeholder="Descreva o problema ou solicitação" maxlength="300" rows="5" required></textarea>
+    <small id="contador">0 / 300</small>
+
+    <label>E-mail</label>
+    <input type="email" id="email" placeholder="Digite seu e-mail" required>
+
+    <button type="submit" id="btn-enviar">Enviar</button>
+  </form>
+</div>
+
+<script>
+const textarea = document.getElementById("descricao");
+const contador = document.getElementById("contador");
+const btnEnviar = document.getElementById("btn-enviar");
+
+// CONTADOR DE CARACTERES
+textarea.addEventListener("input", () => {
+  const total = textarea.value.length;
+  contador.textContent = `${total} / 300`;
+  contador.style.color = total >= 300 ? "red" : total >= 280 ? "orange" : "#666";
+});
+
+// BUSCAR EQUIPAMENTOS (WEBHOOK 1)
+document.getElementById("hospital").addEventListener("change", function() {
+  const hospital = this.value;
+  const selectEquip = document.getElementById("equipamento");
+  if (!hospital) return;
+
+  selectEquip.innerHTML = '<option>Carregando...</option>';
+
+  fetch("https://n8n-n8n-start.pl2osd.easypanel.host/webhook/equipamentos", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ hospital_id: hospital })
+  })
+  .then(res => res.json())
+  .then(data => {
+    selectEquip.innerHTML = '<option value="">Selecione...</option>';
+    let grupo = document.createElement("optgroup");
+    grupo.label = "Equipamentos";
+    data.forEach(eq => {
+      const option = document.createElement("option");
+      option.value = eq.id;
+      option.textContent = `${eq.nome} - ${eq.identificacao}`;
+      grupo.appendChild(option);
+    });
+    selectEquip.appendChild(grupo);
+  })
+  .catch(() => {
+    selectEquip.innerHTML = '<option>Erro ao carregar</option>';
+  });
+});
+
+// ENVIAR FORMULÁRIO (WEBHOOK 2)
+document.getElementById("formulario").addEventListener("submit", function(e) {
+  e.preventDefault();
+
+  btnEnviar.disabled = true;
+  btnEnviar.textContent = "Enviando...";
+
+  const dados = {
+    hospital_id: document.getElementById("hospital").value,
+    equipamento_id: document.getElementById("equipamento").value,
+    email: document.getElementById("email").value,
+    descricao: document.getElementById("descricao").value
+  };
+
+  fetch("https://n8n-n8n-start.pl2osd.easypanel.host/webhook/abertura", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dados)
+  })
+.then(res => {
+    if (!res.ok) throw new Error("Erro na resposta do servidor");
+    return res.json();
+  })
+  .then(resultado => {
+    console.log("Resposta do n8n:", resultado);
+
+    // Pega o primeiro item do array
+    const dadosN8N = Array.isArray(resultado) ? resultado[0] : resultado;
+
+    if (!dadosN8N) {
+      throw new Error("Dados não recebidos corretamente");
+    }
+
+    const corpo = document.getElementById("modal-corpo");
+    
+    // Injeta os dados no HTML do Modal
+    corpo.innerHTML = `
+   <b>ID:</b> ${dadosN8N.id || "Não gerado"}<br>
+   <b>Hospital:</b> ${dadosN8N.hospital || "Não informado"}<br>
+   <b>Equipamento:</b> ${dadosN8N.equipamento || "Não informado"}<br>
+   <b>Data:</b> ${dadosN8N.data_criacao || ""}<br>
+   <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
+   <div style="font-size: 13px; color: #555;">${(dadosN8N.info_2 || "").trim()}
+    </div>
+    `;
+
+    // Exibe o modal
+    document.getElementById("meuModal").style.display = "flex";
+
+    // Reseta o formulário e o contador
+    document.getElementById("formulario").reset();
+    if (document.getElementById("contador")) {
+      document.getElementById("contador").textContent = "0 / 300";
+    }
+  })
+  .catch(err => {
+    console.error("Erro detalhado:", err);
+    alert("Ocorreu um erro ao processar o chamado. Verifique o console (F12).");
+  })
+  .finally(() => {
+    btn.disabled = false;
+    btn.textContent = "Enviar";
+  });
+});
+
+// Função para fechar o modal (deixe fora do evento de submit)
+function fecharModal() {
+  document.getElementById("meuModal").style.display = "none";
+}  
+
+</script>
+</body>
+</html>
